@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>برنامجي اليومي – النص الحي</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  font-family: 'Almarai', sans-serif;
+  background: #E7F7F4;
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+}
+.app-container { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+.app-layout { display: flex; flex-wrap: wrap; gap: 16px; }
+
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  padding: 20px 22px;
+}
+
+.text-card { flex: 1.6; min-width: 300px; }
+.info-card { flex: 1; min-width: 280px; }
+
+h1 { font-size: 26px; margin-bottom: 6px; color: #2F4858; }
+p.subtitle { font-size: 14px; color: #4b5563; margin-bottom: 18px; }
+
+.paragraph { line-height: 1.9; font-size: 17px; margin-bottom: 12px; }
+
+.word {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+.word:hover { background: #E0F2FF; }
+
+.has-vocab {
+  background: #EEF2FF;
+  box-shadow: 0 0 0 1px #A5B4FC;
+}
+.verb-word {
+  color: #1D4ED8;
+  font-weight: 700;
+}
+
+.info-word { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.transliteration { font-size: 14px; color: #6b7280; margin-bottom: 10px; font-style: italic; }
+
+.definition-label { font-weight: 600; font-size: 13px; color: #4b5563; margin-top: 6px; }
+.definition-value { font-size: 14px; margin-top: 2px; }
+
+.info-image {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 12px;
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.popup-card {
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.25);
+  max-width: 240px;
+  z-index: 9999;
+}
+.popup-image {
+  max-width: 100%;
+  max-height: 130px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border: 1px solid #eee;
+}
+
+.speak-btn {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #1D4ED8;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app-container">
+  <h1>برنامجي اليومي – النص الحي التفاعلي</h1>
+  <p class="subtitle">اضغطي على الأفعال والكلمات المستهدفة لمشاهدة الصورة، وحروف الكلمة، والمعنى، وسماع التسجيل (للأفعال).</p>
+
+  <div class="app-layout">
+    <div class="card text-card">
+      <div id="textContainer"></div>
+    </div>
+    <div class="card info-card">
+      <div id="infoContent">اضغطي على كلمة من النص.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const BASE = "./";      // audio files (same folder)
+  const IMG_BASE = "./";  // image files (same folder)
+
+  const textParagraphs = [
+    "برنامجي اليومي",
+    "كل يوم أستيقظ عادة حوالي الساعة السادسة صباحا. أولا أستحم ثم أتناول فطوري وبعد ذلك أغسل أسناني وألبس ملابسي. أخرج من البيت في الساعة السابعة والنصف. عادة أذهب إلى العمل بالدراجة.",
+    "في المكتب عندنا استراحة في الساعة العاشرة صباحا وأنا أشرب القهوة مع زملائي ونتحدث قليلا في وقت الاستراحة.",
+    "في الساعة الثانية عشرة والنصف أذهب إلى الكانتين وأكل الغذاء مع زملائي. ثم أعمل حتى الساعة الخامسة أو السادسة بعد الظهر ثم أرجع إلى البيت.",
+    "في البيت أشاهد التلفزيون قليلا أو أقرأ الأخبار. وأحيانا ألعب مع أولادي ثم نتناول العشاء معا. بعد العشاء أحيانا أستمع إلى الموسيقى وأحيانا أقرأ كتابا أو أقرأ الفيسبوك في هاتفي.",
+    "يوم السبت ويوم الأحد عطلة ونحن لا نستيقظ قبل الساعة التاسعة.",
+    "يوم السبت صباحا عادة أذهب إلى السوق مع زوجي ونشتري الخضار والفواكه والبيض والحليب والأشياء الأخرى. ثم نرجع إلى البيت ونفضل شغل البيت. وبعد ذلك نجلس في الحديقة نتكلم ونلعب مع أولادنا وكلابنا.",
+    "أحيانا نذهب إلى الكنيسة يوم الأحد صباحا وأحيانا نخرج مع أصدقائنا.",
+    "وفي المساء بعد الساعة السادسة أقرأ رسائلي الإلكترونية والأولاد يفعلون واجباتهم."
+  ];
+
+  const vocab = {
+
+    /* ===== الأفعال ===== */
+    "أستيقظ": {
+      type: "verb",
+      base: "أستيقظ",
+      letters: "أ ـ س ـ ت ـ ي ـ ق ـ ظ",
+      meaning: "I wake up",
+      transliteration: "astayqiz",
+      audio: BASE + "astayqiz.mp3",
+      image: IMG_BASE + "astaygiz.jpg"
+    },
+
+    "أستحم": {
+      type: "verb",
+      base: "أستحم",
+      letters: "أ ـ س ـ ت ـ ح ـ م",
+      meaning: "I shower",
+      transliteration: "astahim",
+      audio: BASE + "astahim.mp3",
+      image: IMG_BASE + "astahem.jpg"
+    },
+
+    "أتناول": {
+      type: "verb",
+      base: "أتناول",
+      letters: "أ ـ ت ـ ن ـ ا ـ و ـ ل",
+      meaning: "I eat / have",
+      transliteration: "atanawwal",
+      audio: BASE + "atanawwal.mp3",
+      image: IMG_BASE + "atanawwal.jpg"
+    },
+
+    "أغسل": {
+      type: "verb",
+      base: "أغسل",
+      letters: "أ ـ غ ـ س ـ ل",
+      meaning: "I wash",
+      transliteration: "aghsil",
+      audio: BASE + "aghsil.mp3",
+      image: IMG_BASE + "aghsel.jpg"
+    },
+
+    "ألبس": {
+      type: "verb",
+      base: "ألبس",
+      letters: "أ ـ ل ـ ب ـ س",
+      meaning: "I dress / I put on",
+      transliteration: "albis",
+      audio: BASE + "albis.mp3",
+      image: IMG_BASE + "albis.jpg"
+    },
+
+    "أخرج": {
+      type: "verb",
+      base: "أخرج",
+      letters: "أ ـ خ ـ ر ـ ج",
+      meaning: "I go out",
+      transliteration: "akhruj",
+      audio: BASE + "akhruj.mp3",
+      image: IMG_BASE + "akhroj.jpg"
+    },
+
+    "أذهب": {
+      type: "verb",
+      base: "أذهب",
+      letters: "أ ـ ذ ـ ه ـ ب",
+      meaning: "I go",
+      transliteration: "adhhab",
+      audio: BASE + "adhhab.mp3",
+      image: IMG_BASE + "athhab.jpg"
+    },
+
+    "أعمل": {
+      type: "verb",
+      base: "أعمل",
+      letters: "أ ـ ع ـ م ـ ل",
+      meaning: "I work",
+      transliteration: "a'mal",
+      audio: BASE + "a3mal.mp3",
+      image: IMG_BASE + "a3mal.jpg"
+    },
+
+    "أكل": {
+      type: "verb",
+      base: "أكل",
+      letters: "أ ـ ك ـ ل",
+      meaning: "I eat",
+      transliteration: "akul",
+      audio: BASE + "akul.mp3",
+      image: IMG_BASE + "akul.jpg"
+    },
+
+    "أشاهد": {
+      type: "verb",
+      base: "أشاهد",
+      letters: "أ ـ ش ـ ا ـ ه ـ د",
+      meaning: "I watch",
+      transliteration: "ushahid",
+      audio: BASE + "ushahid.mp3",
+      image: IMG_BASE + "ushahid.jpg"
+    },
+
+    "أقرأ": {
+      type: "verb",
+      base: "أقرأ",
+      letters: "أ ـ ق ـ ر ـ أ",
+      meaning: "I read",
+      transliteration: "aqra'",
+      audio: BASE + "aqra.mp3",
+      image: IMG_BASE + "aqra.jpg"
+    },
+
+    "ألعب": {
+      type: "verb",
+      base: "ألعب",
+      letters: "أ ـ ل ـ ع ـ ب",
+      meaning: "I play",
+      transliteration: "al'ab",
+      audio: BASE + "al3ab.mp3",
+      image: IMG_BASE + "al3ab.jpg"
+    },
+
+    "أستمع": {
+      type: "verb",
+      base: "أستمع",
+      letters: "أ ـ س ـ ت ـ م ـ ع",
+      meaning: "I listen",
+      transliteration: "astami'",
+      audio: BASE + "astami3.mp3",
+      image: IMG_BASE + "asma3.jpg"
+    },
+
+    "أسمع": {
+      type: "verb",
+      base: "أسمع",
+      letters: "أ ـ س ـ م ـ ع",
+      meaning: "I hear",
+      transliteration: "asma'",
+      audio: BASE + "astami3.mp3",
+      image: IMG_BASE + "asma3.jpg"
+    },
+
+    "أرجع": {
+      type: "verb",
+      base: "أرجع",
+      letters: "أ ـ ر ـ ج ـ ع",
+      meaning: "I return",
+      transliteration: "arja'",
+      audio: BASE + "arja3.mp3",
+      image: IMG_BASE + "Arja3.jpg"
+    },
+
+    "أشرب": {
+      type: "verb",
+      base: "أشرب",
+      letters: "أ ـ ش ـ ر ـ ب",
+      meaning: "I drink",
+      transliteration: "ashrab",
+      audio: BASE + "ashrab.mp3",
+      image: IMG_BASE + "ashrab.jpg"
+    },
+
+    "أصل": {
+      type: "verb",
+      base: "أصل",
+      letters: "أ ـ ص ـ ل",
+      meaning: "I arrive",
+      transliteration: "asil",
+      audio: BASE + "asil.mp3",
+      image: ""
+    },
+
+    "أجلس": {
+      type: "verb",
+      base: "أجلس",
+      letters: "أ ـ ج ـ ل ـ س",
+      meaning: "I sit",
+      transliteration: "ajlis",
+      audio: BASE + "ajlis.mp3",
+      image: IMG_BASE + "ajlis.jpg"
+    },
+
+    "أشتري": {
+      type: "verb",
+      base: "أشتري",
+      letters: "أ ـ ش ـ ت ـ ر ـ ي",
+      meaning: "I buy",
+      transliteration: "ashtari",
+      audio: BASE + "ashtari.mp3",
+      image: IMG_BASE + "atssawak.jpg"
+    },
+
+    "يفعلون": {
+      type: "verb",
+      base: "يفعلون",
+      letters: "ي ـ ف ـ ع ـ ل ـ و ـ ن",
+      meaning: "they do",
+      transliteration: "yaf'alun",
+      audio: BASE + "af3al.mp3",
+      image: IMG_BASE + "af3al.jpg"
+    },
+
+    "أتكلم": {
+      type: "verb",
+      base: "أتكلم",
+      letters: "أ ـ ت ـ ك ـ ل ـ م",
+      meaning: "I speak",
+      transliteration: "atakallam",
+      audio: BASE + "atakallam.mp3",
+      image: IMG_BASE + "zomala2.jpg"
+    },
+
+    "أنام": {
+      type: "verb",
+      base: "أنام",
+      letters: "أ ـ ن ـ ا ـ م",
+      meaning: "I sleep",
+      transliteration: "anam",
+      audio: BASE + "anam.mp3",
+      image: ""
+    },
+
+    /* ===== أسماء (nouns) ===== */
+
+    "استراحة": {
+      base: "استراحة",
+      letters: "ا ـ س ـ ت ـ ر ـ ا ـ ح ـ ة",
+      meaning: "break",
+      transliteration: "istiraha",
+      image: ""
+    },
+
+    "الاستراحة": {
+      base: "الاستراحة",
+      letters: "ا ـ ل ـ ا ـ س ـ ت ـ ر ـ ا ـ ح ـ ة",
+      meaning: "the break",
+      transliteration: "al-istiraha",
+      image: ""
+    },
+
+    "المكتب": {
+      base: "المكتب",
+      letters: "ا ـ ل ـ م ـ ك ـ ت ـ ب",
+      meaning: "office",
+      transliteration: "al-maktab",
+      image: IMG_BASE + "maktab.jpg"
+    },
+
+    "غذاء": {
+      base: "غذاء",
+      letters: "غ ـ ذ ـ ا ـ ء",
+      meaning: "lunch",
+      transliteration: "ghada'",
+      image: IMG_BASE + "ghada2.jpg"
+    },
+
+    "الغذاء": {
+      base: "الغذاء",
+      letters: "ا ـ ل ـ غ ـ ذ ـ ا ـ ء",
+      meaning: "the lunch",
+      transliteration: "al-ghada'",
+      image: IMG_BASE + "ghada2.jpg"
+    },
+
+    "الدراجة": {
+      base: "الدراجة",
+      letters: "ا ـ ل ـ د ـ ر ـ ا ـ ج ـ ة",
+      meaning: "bicycle",
+      transliteration: "al-daraja",
+      image: IMG_BASE + "Daraja.jpg"
+    },
+
+    "بالدراجة": {
+      base: "بالدراجة",
+      letters: "ب ـ ا ـ ل ـ د ـ ر ـ ا ـ ج ـ ة",
+      meaning: "by bicycle",
+      transliteration: "bi-al-daraja",
+      image: IMG_BASE + "arkab darajah.jpg"
+    },
+
+    "الكنيسة": {
+      base: "الكنيسة",
+      letters: "ا ـ ل ـ ك ـ ن ـ ي ـ س ـ ة",
+      meaning: "church",
+      transliteration: "al-kanisa",
+      image: IMG_BASE + "kanissa.jpg"
+    },
+
+    "الواجبات": {
+      base: "الواجبات",
+      letters: "ا ـ ل ـ و ـ ا ـ ج ـ ب ـ ا ـ ت",
+      meaning: "homework",
+      transliteration: "al-wajibat",
+      image: ""
+    },
+
+    "أسناني": {
+      base: "أسناني",
+      letters: "أ ـ س ـ ن ـ ا ـ ن ـ ي",
+      meaning: "my teeth",
+      transliteration: "asnani",
+      image: ""
+    },
+
+    "أسنان": {
+      base: "أسنان",
+      letters: "أ ـ س ـ ن ـ ا ـ ن",
+      meaning: "teeth",
+      transliteration: "asnan",
+      image: ""
+    },
+
+    "ملابسي": {
+      base: "ملابسي",
+      letters: "م ـ ل ـ ا ـ ب ـ س ـ ي",
+      meaning: "my clothes",
+      transliteration: "malabisi",
+      image: IMG_BASE + "malabis.jpg"
+    },
+
+    "فطوري": {
+      base: "فطوري",
+      letters: "ف ـ ط ـ و ـ ر ـ ي",
+      meaning: "my breakfast",
+      transliteration: "futuri",
+      image: IMG_BASE + "foutour.jpg"
+    },
+
+    "فطور": {
+      base: "فطور",
+      letters: "ف ـ ط ـ و ـ ر",
+      meaning: "breakfast",
+      transliteration: "futur",
+      image: IMG_BASE + "foutour.jpg"
+    },
+
+    "العشاء": {
+      base: "العشاء",
+      letters: "ا ـ ل ـ ع ـ ش ـ ا ـ ء",
+      meaning: "dinner",
+      transliteration: "al-asha'",
+      image: ""
+    },
+
+    "شغل البيت": {
+      base: "شغل البيت",
+      letters: "ش ـ غ ـ ل ـ ا ـ ل ـ ب ـ ي ـ ت",
+      meaning: "housework",
+      transliteration: "shaghl al-bayt",
+      image: ""
+    },
+
+    "أولادي": {
+      base: "أولادي",
+      letters: "أ ـ و ـ ل ـ ا ـ د ـ ي",
+      meaning: "my children",
+      transliteration: "awladi",
+      image: IMG_BASE + "awlad.jpg"
+    },
+
+    "أسرتي": {
+      base: "أسرتي",
+      letters: "أ ـ س ـ ر ـ ت ـ ي",
+      meaning: "my family",
+      transliteration: "usrati",
+      image: IMG_BASE + "awlad.jpg"
+    },
+
+    "زملائي": {
+      base: "زملائي",
+      letters: "ز ـ م ـ ل ـ ا ـ ئ ـ ي",
+      meaning: "my colleagues",
+      transliteration: "zumala'i",
+      image: IMG_BASE + "zomala2.jpg"
+    },
+
+    "أصدقائنا": {
+      base: "أصدقائنا",
+      letters: "أ ـ ص ـ د ـ ق ـ ا ـ ئ ـ ن ـ ا",
+      meaning: "our friends",
+      transliteration: "asdiqa'una",
+      image: IMG_BASE + "zomala2.jpg"
+    },
+
+    "كلابنا": {
+      base: "كلابنا",
+      letters: "ك ـ ل ـ ا ـ ب ـ ن ـ ا",
+      meaning: "our dogs",
+      transliteration: "kalabuna",
+      image: ""
+    },
+
+    "الحديقة": {
+      base: "الحديقة",
+      letters: "ا ـ ل ـ ح ـ د ـ ي ـ ق ـ ة",
+      meaning: "garden",
+      transliteration: "al-hadiqa",
+      image: IMG_BASE + "hadika.jpg"
+    },
+
+    "السوق": {
+      base: "السوق",
+      letters: "ا ـ ل ـ س ـ و ـ ق",
+      meaning: "market",
+      transliteration: "al-suq",
+      image: IMG_BASE + "atssawak.jpg"
+    },
+
+    "وقت": {
+      base: "وقت",
+      letters: "و ـ ق ـ ت",
+      meaning: "time",
+      transliteration: "waqt",
+      image: IMG_BASE + "waket.jpg"
+    }
+
+  }; // end vocab
+
+  // دعم خاص لـ "وأكل"
+  vocab["وأكل"] = vocab["أكل"];
+
+  const textContainer = document.getElementById("textContainer");
+  const infoContent = document.getElementById("infoContent");
+  let popup = null;
+
+  // Build clickable text
+  textParagraphs.forEach(par => {
+    const p = document.createElement("p");
+    p.className = "paragraph";
+
+    const tokens = par.split(" ");
+    tokens.forEach((word, i) => {
+      const clean = word.replace(/[.,!?،؛"«»]/g, "");
+      const span = document.createElement("span");
+      span.textContent = word;
+      span.className = "word";
+
+      if (vocab[clean]) {
+        span.dataset.key = clean;
+        span.classList.add("has-vocab");
+        if (vocab[clean].type === "verb") {
+          span.classList.add("verb-word");
+        }
+      }
+
+      p.appendChild(span);
+      if (i !== tokens.length - 1) {
+        p.appendChild(document.createTextNode(" "));
+      }
+    });
+
+    textContainer.appendChild(p);
+  });
+
+  textContainer.addEventListener("click", e => {
+    const key = e.target.dataset.key;
+    if (!key) return;
+    const entry = vocab[key];
+    showInfo(entry);
+    showPopup(entry, e.target);
+  });
+
+  function showInfo(entry) {
+    infoContent.innerHTML = `
+      <div class="info-word">${entry.base}</div>
+      <div class="transliteration">${entry.transliteration || ""}</div>
+      <div class="definition-label">المعنى:</div>
+      <div class="definition-value">${entry.meaning || "—"}</div>
+      <div class="definition-label">الحروف:</div>
+      <div class="definition-value">${entry.letters || "—"}</div>
+      ${entry.image ? `<img src="${entry.image}" class="info-image">` : ""}
+    `;
+  }
+
+  function showPopup(entry, anchor) {
+    if (popup) popup.remove();
+
+    popup = document.createElement("div");
+    popup.className = "popup-card";
+
+    popup.innerHTML = `
+      <div class="info-word">${entry.base}</div>
+      <div class="transliteration">${entry.transliteration || ""}</div>
+      ${entry.image ? `<img src="${entry.image}" class="popup-image">` : ""}
+      ${entry.audio ? `<div class="speak-btn">🔊 استمع</div>` : ""}
+      <div class="definition-label">المعنى:</div>
+      <div class="definition-value">${entry.meaning || "—"}</div>
+      <div class="definition-label">الحروف:</div>
+      <div class="definition-value">${entry.letters || "—"}</div>
+    `;
+
+    document.body.appendChild(popup);
+    const rect = anchor.getBoundingClientRect();
+    popup.style.top = `${rect.top + window.scrollY + 30}px`;
+    popup.style.left = `${rect.left + window.scrollX - 20}px`;
+
+    const btn = popup.querySelector(".speak-btn");
+    if (btn && entry.audio) {
+      btn.addEventListener("click", () => {
+        new Audio(entry.audio).play().catch(err => console.log("Audio error:", err));
+      });
+    }
+  }
+
+});
+</script>
+
+</body>
+</html>
